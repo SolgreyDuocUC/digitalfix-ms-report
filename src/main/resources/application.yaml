@@ -1,3 +1,60 @@
+server:
+  port: ${SERVER_PORT:8086}
+
 spring:
   application:
     name: digitalfix-ms-report
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+    username: ${SPRING_DATASOURCE_USERNAME:digitalfix_report}
+    password: ${SPRING_DATASOURCE_PASSWORD:digitalfix_report}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:report-kpi-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.value.default.type: df.digitalfix_ms_report.dto.event.WorkOrderEventDTO
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:https://login.microsoftonline.com/common/v2.0}
+
+kafka:
+  topics:
+    workorders-events: ${KAFKA_TOPIC_WORKORDERS_EVENTS:workorders.events}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized

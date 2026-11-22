@@ -1,0 +1,16 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
+      - org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
+  kafka:
+    listener:
+      auto-startup: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: https://example.invalid/.well-known/jwks.json
