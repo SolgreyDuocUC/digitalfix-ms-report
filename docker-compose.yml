@@ -1,0 +1,29 @@
+networks:
+  digitalfix-net:
+    name: digitalfix-net
+    driver: bridge
+
+services:
+  ms-report:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ms-report-service
+    ports:
+      - "${SERVER_PORT:-8086}:8086"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - SERVER_PORT=${SERVER_PORT:-8086}
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-digitalfix_report}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-digitalfix_report}
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-localhost:9092}
+      - KAFKA_CONSUMER_GROUP_ID=${KAFKA_CONSUMER_GROUP_ID:-report-kpi-group}
+      - KAFKA_TOPIC_WORKORDERS_EVENTS=${KAFKA_TOPIC_WORKORDERS_EVENTS:-workorders.events}
+      - JWT_ISSUER_URI=${JWT_ISSUER_URI:-https://login.microsoftonline.com/common/v2.0}
+      - JAVA_OPTS=${JAVA_OPTS:--Djava.net.preferIPv4Stack=true}
+    networks:
+      - digitalfix-net
+    restart: unless-stopped

@@ -7,44 +7,59 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
- * Extracts Azure Entra ID roles from the JWT "roles" claim and normalizes them as ROLE_* authorities.
+ * Extracts roles from the JWT "roles" claim and, when available, from ms-user (/api/user/me),
+ * normalizing them as ROLE_* authorities.
  */
 public class AzureJwtRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
     private static final String ROLES_CLAIM = "roles";
 
+    private final UserRoleClient userRoleClient;
+
+    public AzureJwtRoleConverter() {
+        this(null);
+    }
+
+    public AzureJwtRoleConverter(UserRoleClient userRoleClient) {
+        this.userRoleClient = userRoleClient;
+    }
+
     @Override
     public Collection<GrantedAuthority> convert(Jwt jwt) {
+        Set<GrantedAuthority> authorities = new LinkedHashSet<>();
         Object claim = jwt.getClaim(ROLES_CLAIM);
-        if (claim == null) {
-            return Collections.emptyList();
-        }
 
         if (claim instanceof Collection<?> roleCollection) {
-            return roleCollection.stream()
+            roleCollection.stream()
                     .filter(Objects::nonNull)
                     .map(Object::toString)
                     .map(String::trim)
                     .filter(role -> !role.isEmpty())
                     .map(this::toRoleAuthority)
-                    .collect(Collectors.toSet());
-        }
-
-        if (claim instanceof String rolesString && !rolesString.isBlank()) {
-            return Arrays.stream(rolesString.split("[,\\s]+"))
+                    .forEach(authorities::add);
+        } else if (claim instanceof String rolesString && !rolesString.isBlank()) {
+            Arrays.stream(rolesString.split("[,\\s]+"))
                     .map(String::trim)
                     .filter(role -> !role.isEmpty())
                     .map(this::toRoleAuthority)
-                    .collect(Collectors.toSet());
+                    .forEach(authorities::add);
         }
 
-        return Collections.emptyList();
+        if (userRoleClient != null) {
+            String oid = jwt.getClaimAsString("oid");
+            String userEntraId = oid != null && !oid.isBlank() ? oid : jwt.getSubject();
+            userRoleClient.findRoleCode(userEntraId, jwt.getTokenValue())
+                    .map(this::toRoleAuthority)
+                    .ifPresent(authorities::add);
+        }
+
+        return authorities;
     }
 
     private GrantedAuthority toRoleAuthority(String rawRole) {

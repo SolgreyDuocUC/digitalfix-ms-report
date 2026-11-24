@@ -6,6 +6,7 @@ import df.digitalfix_ms_report.exception.InvalidRangeException;
 import df.digitalfix_ms_report.security.SecurityConfig;
 import df.digitalfix_ms_report.service.KpiService;
 import org.junit.jupiter.api.Test;
+import df.digitalfix_ms_report.security.UserRoleClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -36,6 +37,9 @@ class KpiControllerTest {
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
+
+    @MockitoBean
+    private UserRoleClient userRoleClient;
 
     @Test
     void shouldReturnUnauthorizedWhenNoTokenProvided() throws Exception {
@@ -97,6 +101,23 @@ class KpiControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Invalid range 'invalid'. Supported values: last1h, last24h, last7d"));
+    }
+
+    @Test
+    void shouldReturnKpisForSuperadminResolvedFromMsUser() throws Exception {
+        when(jwtDecoder.decode("superadmin-token")).thenReturn(jwtWithRoles(List.of()));
+        when(userRoleClient.findRoleCode("user-123", "token")).thenReturn(java.util.Optional.of("SUPERADMIN"));
+        when(kpiService.getKpis("last24h")).thenReturn(KpiReportResponseDTO.builder()
+                .totalOrdersLast24h(0L)
+                .ordersPerHour(0.0)
+                .avgResolutionTimeMinutes(0.0)
+                .activeStatusCount(Map.of())
+                .build());
+
+        mockMvc.perform(get("/api/report/kpis")
+                        .param("range", "last24h")
+                        .header("Authorization", "Bearer superadmin-token"))
+                .andExpect(status().isOk());
     }
 
     private Jwt jwtWithRoles(List<String> roles) {

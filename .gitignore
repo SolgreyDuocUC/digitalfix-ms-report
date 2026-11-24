@@ -41,6 +41,7 @@ application-local.yml
 application-local.yaml
 
 ### Certificates & Keystores ###
+wallet/
 *.jks
 *.p12
 *.pem
