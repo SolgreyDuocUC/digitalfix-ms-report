@@ -10,7 +10,11 @@ import java.util.List;
 
 @Repository
 public interface WorkOrderStateRepository extends JpaRepository<WorkOrderStateEntity, Long> {
+
     List<WorkOrderStateEntity> findByCurrentStatusIn(Collection<String> statuses);
 
     List<WorkOrderStateEntity> findByFirstSeenAtAfterOrClosedAtAfter(Instant firstSeenCutoff, Instant closedCutoff);
+
+    /** Órdenes cerradas dentro de la ventana, con su tiempo de resolución. */
+    List<WorkOrderStateEntity> findByClosedAtGreaterThanEqualAndResolutionMillisIsNotNull(Instant from);
 }

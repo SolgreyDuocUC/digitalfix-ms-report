@@ -2,6 +2,7 @@ package df.digitalfix_ms_report.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
@@ -40,6 +41,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        // Bitácora de auditoría: también la consulta el Auditor
+                        .requestMatchers(HttpMethod.GET, "/api/report/events", "/api/report/orders/**")
+                                .hasAnyRole("SUPERVISOR", "ADMIN", "AUDITOR")
                         .requestMatchers("/api/report/**").hasAnyRole("SUPERVISOR", "ADMIN")
                         .anyRequest().authenticated()
                 )

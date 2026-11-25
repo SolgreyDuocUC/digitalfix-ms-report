@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
                         .timestamp(Instant.now())
                         .status(HttpStatus.FORBIDDEN.value())
                         .error(HttpStatus.FORBIDDEN.getReasonPhrase())
-                        .message("Access denied: Supervisor or Admin role required")
+                        .message("Access denied: your role cannot access this report")
                         .path(request.getRequestURI())
                         .build()
         );
